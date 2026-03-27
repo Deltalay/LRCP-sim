@@ -4,7 +4,7 @@ OBJCOPY = $(PREFIX)objcopy
 
 TARGET = firmware
 # SRCS = main.c uECC.c aes.c
-SRCS = src/main.c src/uECC.c
+SRCS = src/main.c
 LDSCRIPT = linker.ld
 
 MCU = -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
@@ -15,7 +15,7 @@ LDFLAGS = -T $(LDSCRIPT) -Wl,--gc-sections
 all: $(TARGET).bin
 
 $(TARGET).elf: $(SRCS) $(LDSCRIPT)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SRCS) -o $(TARGET).elf
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SRCS) libuECC.a -o $(TARGET).elf
 
 $(TARGET).bin: $(TARGET).elf
 	$(OBJCOPY) -O binary $(TARGET).elf $(TARGET).bin

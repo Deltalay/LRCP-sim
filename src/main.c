@@ -9,7 +9,7 @@
 #define SYSCFG_BASE 0x40013800
 // Don't change this
 #define SCB_CPACR (*(volatile uint32_t *)0xE000ED88)
-// Timer STUFF
+// Timers STUFF
 #define STK_CTRL (*(volatile uint32_t *)(0xE000E010))
 #define STK_LOAD (*(volatile uint32_t *)(0xE000E014))
 #define STK_VAL (*(volatile uint32_t *)(0xE000E018))
