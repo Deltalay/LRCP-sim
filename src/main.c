@@ -147,8 +147,8 @@ static int dummy_rng(uint8_t *dest, unsigned size) {
   }
   return 1;
 }
-volatile uint8_t private_key[32];
-volatile uint8_t public_key[64];
+uint8_t private_key[32];
+uint8_t public_key[64];
 static void setup_crypto() {
   uECC_set_rng(&dummy_rng);
   uECC_make_key(public_key, private_key, uECC_secp256r1());
@@ -160,6 +160,7 @@ void start(void) {
   GPIOA_MODER &= ~(3U << 18 | 3U << 20); // Reset to 00
   GPIOA_MODER |= (2U << 18 | 2U << 20);  // set to alternate function (0b10) = 2
   // We want AF7 (USART 1)
+
   GPIOA_AFRH &= ~(0xFF << 4);
   GPIOA_AFRH |= (7U << 4 | 7U << 8);
   GPIOA_OSPEEDR |= (3U << 18) | (3U << 20);
