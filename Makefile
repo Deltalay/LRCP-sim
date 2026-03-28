@@ -4,7 +4,7 @@ OBJCOPY = $(PREFIX)objcopy
 
 TARGET = firmware
 # SRCS = main.c uECC.c aes.c
-SRCS = src/main.c
+SRCS = src/main.c src/sha256.c
 LDSCRIPT = linker.ld
 
 MCU = -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard

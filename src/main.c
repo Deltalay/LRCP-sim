@@ -1,4 +1,5 @@
 // USE PA9 and PA10
+#include "sha256.h"
 #include "uECC.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -37,6 +38,8 @@
 #define RCC_CR (*(volatile uint32_t *)(RCC_BASE + 0x00))
 #define RCC_CFGR (*(volatile uint32_t *)(RCC_BASE + 0x08))
 #define MAX_LORA_BUFFER 64
+#define MY_KEY 748545
+#define OTHER_KEY 145874
 volatile uint32_t ms_ticks;
 void start(void);
 void Reset_Handler(void) {
@@ -138,17 +141,15 @@ enum HANDSHAKE_EVENT {
   EVENT_TEST,
   EVENT_SUCCESS
 };
-static int dummy_rng(uint8_t* dest, unsigned size) {
-  for (unsigned i = 0; i < size; i++)
-  {
+static int dummy_rng(uint8_t *dest, unsigned size) {
+  for (unsigned i = 0; i < size; i++) {
     dest[i] = 0xAA;
   }
   return 1;
 }
 volatile uint8_t private_key[32];
 volatile uint8_t public_key[64];
-static void setup_crypto()
-{
+static void setup_crypto() {
   uECC_set_rng(&dummy_rng);
   uECC_make_key(public_key, private_key, uECC_secp256r1());
 }
@@ -168,9 +169,11 @@ void start(void) {
   USART1_CR1 |= (1U << 13); // Enable USART
   enum SYSTEM_STATE state = STATE_IDLE;
   enum HANDSHAKE_EVENT state_event = EVENT_NONE;
-  setup_crypto(); 
+  setup_crypto();
   uint32_t timer_start = millis();
   uart_send("HELLO", 6);
+  char *str = (char *)public_key;
+  uint8_t pub_1st = 1;
   int pub_counter = 3;
   while (1) {
     // TODO: Handle overflow properly
@@ -184,7 +187,19 @@ void start(void) {
 
       switch (state_event) {
       case EVENT_PUBLIC_KEY: {
-        // Send PUBLIC KEY
+        if ((elapsed(timer_start, 30 * 1000) || pub_1st) && (pub_counter > 0)) {
+          timer_start = millis();
+          pub_1st = 0;
+          uart_send(str, sizeof(public_key) + 1);
+          pub_counter--;
+        } else {
+          state_event = EVENT_NONE;
+          pub_1st = 1;
+          pub_counter = 3;
+        }
+        break;
+      default:
+        break;
       }
       }
 
