@@ -37,6 +37,9 @@
 #define RCC_PLLCFGR (*(volatile uint32_t *)(RCC_BASE + 0x04))
 #define RCC_CR (*(volatile uint32_t *)(RCC_BASE + 0x00))
 #define RCC_CFGR (*(volatile uint32_t *)(RCC_BASE + 0x08))
+
+// Stuff
+#define START 1
 #define MAX_LORA_BUFFER 64
 #define MY_KEY 748545
 #define OTHER_KEY 145874
@@ -131,16 +134,14 @@ void USART1_IRQHandler() {
 }
 enum SYSTEM_STATE {
   STATE_IDLE,
+  STATE_PUBLIC_KEY,
+  STATE_TEST,
+  STATE_PRESHARE_KEY,
   STATE_ERROR,
   STATE_CONNECTED,
   STATE_DISCONNECTED,
 };
-enum HANDSHAKE_EVENT {
-  EVENT_NONE = -1,
-  EVENT_PUBLIC_KEY,
-  EVENT_TEST,
-  EVENT_SUCCESS
-};
+
 static int dummy_rng(uint8_t *dest, unsigned size) {
   for (unsigned i = 0; i < size; i++) {
     dest[i] = 0xAA;
@@ -152,6 +153,15 @@ uint8_t public_key[64];
 static void setup_crypto() {
   uECC_set_rng(&dummy_rng);
   uECC_make_key(public_key, private_key, uECC_secp256r1());
+}
+void reset_rx_buffer() {
+  complete = 0;
+  buffer_index = 0;
+  overflow = 0;
+}
+uint8_t accept_request() {
+  // handle accept requeist;
+  return 1;
 }
 void start(void) {
   RCC_AHB1ENR |= (1 << 0); // Enable GPIOA
@@ -169,13 +179,13 @@ void start(void) {
   USART1_CR1 |= (1U << 5);
   USART1_CR1 |= (1U << 13); // Enable USART
   enum SYSTEM_STATE state = STATE_IDLE;
-  enum HANDSHAKE_EVENT state_event = EVENT_NONE;
   setup_crypto();
   uint32_t timer_start = millis();
   uart_send("HELLO", 6);
   char *str = (char *)public_key;
   uint8_t pub_1st = 1;
   int pub_counter = 3;
+  uint8_t is_init = 0;
   while (1) {
     // TODO: Handle overflow properly
     if (overflow) {
@@ -185,40 +195,53 @@ void start(void) {
     }
     switch (state) {
     case STATE_IDLE: {
-
-      switch (state_event) {
-      case EVENT_PUBLIC_KEY: {
-        if ((elapsed(timer_start, 30 * 1000) || pub_1st) && (pub_counter > 0)) {
+      if (accept_request()) {
+        if (elapsed(timer_start, 60 * 1000) && complete == 0) {
           timer_start = millis();
-          pub_1st = 0;
-          uart_send(str, sizeof(public_key) + 1);
-          pub_counter--;
-        } else {
-          state_event = EVENT_NONE;
-          pub_1st = 1;
-          pub_counter = 3;
+          uart_send("HELLO", 6);
         }
-        break;
-      default:
-        break;
-      }
-      }
+        if (complete) {
+          if (!str_cmp(BUFFER, "HELLO")) {
+            uart_send("HI", sizeof("HI"));
 
-      if (elapsed(timer_start, 30 * 1000) && complete == 0) {
-        timer_start = millis();
-        uart_send("HELLO", 6);
-      }
-      if (complete) {
-        if (!str_cmp(BUFFER, "HI")) {
-          uart_send("HELLO_ACK", sizeof("HELLO_ACK"));
-          state_event = EVENT_PUBLIC_KEY;
+            reset_rx_buffer();
+          }
+          if (!str_cmp(BUFFER, "HI")) {
+            uart_send("HELLO_ACK", sizeof("HELLO_ACK"));
+            // IMPORTANT for PSK phase
+            is_init = 1;
+            reset_rx_buffer();
+            timer_start = millis();
+            state = STATE_PUBLIC_KEY;
+          }
+          if (!str_cmp(BUFFER, "HELLO_ACK")) {
+            reset_rx_buffer();
+            state = STATE_PUBLIC_KEY;
+            timer_start = millis();
+          }
         }
-        complete = 0;
-        buffer_index = 0;
       }
       break;
     }
+    case STATE_PUBLIC_KEY: {
+
+      break;
+    }
+    case STATE_TEST: {
+      break;
+    }
+    case STATE_PRESHARE_KEY: {
+      break;
+    }
+
     case STATE_CONNECTED: {
+      break;
+    }
+    case STATE_DISCONNECTED: {
+      break;
+    }
+    case STATE_ERROR: {
+      state = STATE_IDLE;
       break;
     }
     }
