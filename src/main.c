@@ -160,7 +160,7 @@ void reset_rx_buffer() {
   overflow = 0;
 }
 void append_str(char *append_str, size_t append_size, char *to_str,
-                size_t to_str_size, char *str, size_t str_size) {
+                size_t to_str_size, char *str, size_t *str_size) {
   // Discard \0 from append_str and to_str;
   if (append_str[append_size - 1] == '\0') {
     append_size--;
@@ -168,18 +168,18 @@ void append_str(char *append_str, size_t append_size, char *to_str,
   if (to_str[to_str_size - 1] == '\0') {
     to_str_size--;
   }
-  if (str_size > (append_size + to_str_size + 1)) {
+  if (*str_size >= (append_size + to_str_size + 1)) {
     uint32_t index = 0;
-    while (append_size--) {
+    while (index < append_size) {
       str[index] = append_str[index];
       index++;
     }
-    while (to_str_size--) {
-      str[index] = to_str[index - to_str_size];
+    while (index - append_size < to_str_size) {
+      str[index] = to_str[index - append_size];
       index++;
     }
     str[index] = '\0';
-    str_size = index;
+    *str_size = index;
   }
   return;
 }
@@ -248,9 +248,10 @@ void start(void) {
     }
     case STATE_PUBLIC_KEY: {
       char append[] = "PUB: ";
-      char pub_str[256];
+      size_t pub_str_size = 256;
+      char pub_str[pub_str_size];
       append_str(append, sizeof(append), (char *)public_key, sizeof(public_key),
-                 pub_str, sizeof(pub_str));
+                 pub_str, &pub_str_size);
       if (pub_1st) {
         pub_1st = 0;
       }
