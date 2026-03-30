@@ -159,6 +159,30 @@ void reset_rx_buffer() {
   buffer_index = 0;
   overflow = 0;
 }
+void append_str(char *append_str, size_t append_size, char *to_str,
+                size_t to_str_size, char *str, size_t str_size) {
+  // Discard \0 from append_str and to_str;
+  if (append_str[append_size - 1] == '\0') {
+    append_size--;
+  }
+  if (to_str[to_str_size - 1] == '\0') {
+    to_str_size--;
+  }
+  if (str_size > (append_size + to_str_size + 1)) {
+    uint32_t index = 0;
+    while (append_size--) {
+      str[index] = append_str[index];
+      index++;
+    }
+    while (to_str_size--) {
+      str[index] = to_str[index - to_str_size];
+      index++;
+    }
+    str[index] = '\0';
+    str_size = index;
+  }
+  return;
+}
 uint8_t accept_request() {
   // handle accept requeist;
   return 1;
@@ -182,7 +206,6 @@ void start(void) {
   setup_crypto();
   uint32_t timer_start = millis();
   uart_send("HELLO", 6);
-  char *str = (char *)public_key;
   uint8_t pub_1st = 1;
   int pub_counter = 3;
   uint8_t is_init = 0;
@@ -224,7 +247,13 @@ void start(void) {
       break;
     }
     case STATE_PUBLIC_KEY: {
-
+      char append[] = "PUB: ";
+      char pub_str[256];
+      append_str(append, sizeof(append), (char *)public_key, sizeof(public_key),
+                 pub_str, sizeof(pub_str));
+      if (pub_1st) {
+        pub_1st = 0;
+      }
       break;
     }
     case STATE_TEST: {
