@@ -44,6 +44,16 @@
 #define MY_KEY 748545
 #define OTHER_KEY 145874
 volatile uint32_t ms_ticks;
+// Max is 230 Byte, we will have to add \r\n and \0
+// 5 * \0 and 2 bytes for \r\n
+// 5 + 2 + 1 + 8 + 16 + 16 + 182 = 230 BYTES
+struct Packet {
+  uint8_t MsgType;
+  uint8_t Nonce[8];
+  uint32_t from_id[4];
+  uint32_t to_id[4];
+  uint8_t Payload[182];
+};
 void start(void);
 void Reset_Handler(void) {
   // Enable FPU
