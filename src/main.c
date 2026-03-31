@@ -47,6 +47,8 @@ volatile uint32_t ms_ticks;
 // Max is 230 Byte, we will have to add \r\n and \0
 // 5 * \0 and 2 bytes for \r\n
 // 5 + 2 + 1 + 8 + 16 + 16 + 182 = 230 BYTES
+// to_id when broadcast for everyone should be 0x00000000
+// if specfic, then it should be specific id
 struct Packet {
   uint8_t MsgType;
   uint8_t Nonce[8];
